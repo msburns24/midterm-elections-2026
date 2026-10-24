@@ -1,0 +1,20 @@
+# Python / tooling
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
+
+# Data: raw pulls stay local until each source's terms are checked (see CLAUDE.md E11)
+data/raw/
+
+# Claude Code: keep plans, ignore machine-local settings
+.claude/settings.local.json
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
