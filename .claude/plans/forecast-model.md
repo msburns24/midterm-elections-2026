@@ -49,10 +49,10 @@ wrapping.
   second to cut after the dashboard map.
 - **D6 — Freeze.** Around the evening of 2026-11-02, marked with a git tag.
   **PARTLY RESOLVED (2026-10-24)**; exact time and manifest open (CLAUDE.md A4),
-  decide at 6.3.
-- **D7 — Handoff format.** Proposal: per-race parameters + national/factor
-  parameters + draws. Filtering draws alone collapses after about 15 calls (see
-  Pinned). **OPEN → decide at 0.4.**
+  decide at 6.4.
+- **D7 — Handoff format.** Per-race params + latent draws (eta, f) + rules; full
+  draws only for verification. **RESOLVED (2026-10-24) → `docs/handoff.md`
+  v1.0** because exact conditioning on latents doesn't collapse.
 - **D8 — Light factor.** Region (Census divisions) vs. lean bucket vs. a
   demographic proxy. **OPEN → decide at 4.1.**
 - **D9 — Code license.** MIT vs. Apache-2.0 vs. other (CLAUDE.md E12).
@@ -69,7 +69,7 @@ Legend: ✅ done · 🟡 partial · ❌ missing
 | --------------------------- | -------------------------------------------------- |
 | Repo scaffold (uv, src, CI) | 🟡 pre-commit verified; GitHub Actions not yet run |
 | Model config                | 🟡 typed loader done; most values provisional      |
-| Handoff contract            | ❌ not drafted                                     |
+| Handoff contract            | ✅ v1.0 approved in `docs/handoff.md`              |
 | FiftyPlusOne polls          | ❌ not downloaded; ToS unchecked                   |
 | District leans (2026 maps)  | ❌ source candidate: Downballot                    |
 | House race metadata         | ❌ no source chosen (B9)                           |
@@ -146,13 +146,22 @@ Legend: ✅ done · 🟡 partial · ❌ missing
 - Real-world poll error is about 2× sampling error (Shirani-Mehr et al. 2018),
   so inflate poll variance and add a per-race bias floor.
 
-**Handoff gotcha (affects D7 and the election-night plan)**
+**Handoff contract v1.0 (full spec: `docs/handoff.md`)**
 
-- Conditioning by keeping only draws consistent with the calls: P(a draw matches
-  k calls) shrinks fast. With 10k draws and about 15+ calls, few or no draws
-  survive. So the artifact must carry the model _parameters_ (mu_i, sigma_i,
-  lambda_i, national/factor distributions). That lets the laptop re-simulate
-  with large S and condition properly (e.g., importance weighting on eta/f).
+- Dir `outputs/frozen/<tag>/`: `manifest.json`, `params.json`, `races.parquet`,
+  `chamber_rules.json`, `latent_draws.parquet` (committed); `draws.parquet`
+  (gitignored, sha256 in manifest).
+- `race_id`: `H-<ST>-<NN>` (at-large `00`), `S-<ST>-<class>`.
+- `races.parquet` cols: race_id, chamber, state, district (Int16), display_name,
+  mu, sigma_race, factor_group, factor_loading, contest_type, fixed_winner,
+  d_side_caucus, r_side_caucus, incumbent_party, rule, p_d_win.
+- Race statuses: `uncalled` / `called` / `runoff` (still simulated) / `fixed`.
+- Why latents: given (eta, f), races are independent, so P(calls | latents) =
+  product of Phi terms. That gives exact conditioning; filtering full draws
+  collapses after ~15 calls.
+- Reproducibility requirement for 4.2: draw `eps` from its own RNG stream (e.g.
+  `SeedSequence(seed).spawn`) so `reproduce_draws.py` can regenerate
+  `draws.parquet` from races + latent draws + seed alone.
 
 ## Target structure
 
@@ -187,9 +196,9 @@ outputs/frozen/<tag>/        # handoff artifact + manifest
       CLAUDE.md + scaffold.
 - [x] **0.3** `config/model.toml` + a loader returning a typed config. — ✅
       2026-10-24 _Check:_ a test loads the config and asserts the keys/types.
-- [ ] **0.4** Draft the handoff contract (D7) in `docs/handoff.md`: file names,
-      columns, dtypes. _Check:_ the user approves it; the schema is copied into
-      Pinned facts.
+- [x] **0.4** Draft the handoff contract (D7) in `docs/handoff.md`: file names,
+      columns, dtypes. — ✅ 2026-10-24 _Check:_ the user approves it; the schema
+      is copied into Pinned facts.
 - [ ] **0.5** User commits + merges `forecast/config`, pushes `main`. _Check:_
       `gh run list` shows the first CI run green on `main`.
 
@@ -242,8 +251,8 @@ outputs/frozen/<tag>/        # handoff artifact + manifest
 - [ ] **4.1** Pick the light factor (D8) + loadings; set eta (t, df), f, and eps
       scales in config. _Check:_ decision logged; config loads.
 - [ ] **4.2** `simulate.py`: S correlated draws of all race margins (shared
-      eta/f across chambers). _Check:_ empirical eta SD and race correlations
-      match config within tolerance.
+      eta/f across chambers; separate RNG stream for eps). _Check:_ empirical
+      eta SD and race correlations match config within tolerance.
 - [ ] **4.3** `rules.py`: special rules (GA runoff, ME/AK RCV, CA/WA top-two,
       LA) from verified sources. _Check:_ unit tests per rule; same-party CA/WA
       races resolve deterministically.
@@ -264,9 +273,12 @@ outputs/frozen/<tag>/        # handoff artifact + manifest
 
 - [ ] **6.1** `export.py` writes the handoff artifact per the 0.4 contract.
       _Check:_ a fresh loader script reads it and reproduces P(control).
-- [ ] **6.2** README methods summary + data attributions. _Check:_ every source
+- [ ] **6.2** `scripts/reproduce_draws.py <artifact_dir>` rebuilds the
+      gitignored `draws.parquet`. _Check:_ sha256 of the rebuild matches the
+      manifest.
+- [ ] **6.3** README methods summary + data attributions. _Check:_ every source
       used is named with license/terms.
-- [ ] **6.3** Final pull at the cutoff, run, manifest (data hashes, config,
+- [ ] **6.4** Final pull at the cutoff, run, manifest (data hashes, config,
       commit), git tag. _Check:_ `git tag` exists; artifact hash matches the
       manifest.
 
@@ -329,3 +341,12 @@ outputs/frozen/<tag>/        # handoff artifact + manifest
   fixed by quoting it. ty was added to the pre-commit hooks and CI. Verified: a
   probe `double("a")` fails the ty hook; `pre-commit run --all-files` passes all
   four hooks; 11 tests pass. CLAUDE.md E10 resolved.
+- **0.4 done.** Drafted `docs/handoff.md`. The user approved it with changes:
+  race_id format OK; GA-style runoffs get their own `runoff` status (still
+  simulated for control); `draws.parquet` is gitignored, with a committed
+  `scripts/reproduce_draws.py` that rebuilds it from committed files
+  - seed. Added `.gitignore` rule `outputs/frozen/*/draws.parquet` and verified
+    with `git check-ignore` (draws ignored, races.parquet not). New step 6.2
+    (reproducer; old 6.2/6.3 → 6.3/6.4). 4.2 now requires a separate eps RNG
+    stream. D7 resolved; schema summary pinned. Next: 0.5, Phase 0 merge + first
+    CI run.

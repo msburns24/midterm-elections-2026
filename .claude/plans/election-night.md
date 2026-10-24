@@ -46,8 +46,8 @@ wrapping.
   Netlify data site via CLI vs. raw GitHub (≈5 min cache). **OPEN → decide at
   0.2** by measured latency.
 - **D4 — Conditioning method.** Importance-weight on national/factor draws vs.
-  large-S rejection vs. analytic. **OPEN → decide at 2.2**; it depends on the
-  forecast plan's D7 handoff format.
+  large-S rejection vs. analytic. **OPEN → decide at 2.2**. Contract v1.0 makes
+  exact latent weighting (product of Phi over calls) the lead candidate.
 - **D5 — Manual vs. scraped precedence.** Proposal: a manual row always beats
   the scraper; manual can also "uncall" a race. **OPEN → decide at 1.3.**
 - **D6 — Pre-election page.** **RESOLVED (2026-10-24) → page is public before
@@ -62,7 +62,7 @@ Legend: ✅ done · 🟡 partial · ❌ missing
 
 | Area                        | State                                             |
 | --------------------------- | ------------------------------------------------- |
-| Handoff contract (forecast) | ❌ blocked on forecast plan step 0.4              |
+| Handoff contract (forecast) | ✅ v1.0 in `docs/handoff.md`; mock not built      |
 | Mock artifact for dev       | ❌ missing                                        |
 | JSON publish path           | ❌ candidates listed; none measured               |
 | Call source                 | ❌ not researched                                 |
@@ -135,8 +135,8 @@ projects/midterms-2026/index.qmd   # the dashboard page (OJS)
 ### Phase 0 — Contract & plumbing recon
 
 - [ ] **0.1** Draft the `results.json` schema (control odds, seat distributions,
-      races, timeline, status, `updated_at`). _Check:_ the user approves it; the
-      schema is pinned here.
+      races, timeline, status incl. `runoff`, `updated_at`). _Check:_ the user
+      approves it; the schema is pinned here.
 - [ ] **0.2** Measure publish paths (D3): push a tiny timestamped JSON each way
       and time until the browser sees it. _Check:_ latencies logged; D3
       resolved.
@@ -187,7 +187,8 @@ projects/midterms-2026/index.qmd   # the dashboard page (OJS)
 - [ ] **4.3** Odds-over-the-night line chart from the timeline. _Check:_ a
       simulated 10-point timeline renders with time axis in ET.
 - [ ] **4.4** Race table: competitive races, P(D), margin, status/winner,
-      sortable. _Check:_ called rows visibly marked; works on phone width.
+      sortable. _Check:_ called and runoff rows visibly distinct; works on phone
+      width.
 - [ ] **4.5** Map / key-races panel (cut first). _Check:_ the Senate map colors
       match the called/uncalled state.
 - [ ] **4.6** Deploy the page to matthewburns.net in frozen-forecast mode.
@@ -217,3 +218,9 @@ projects/midterms-2026/index.qmd   # the dashboard page (OJS)
   the forecast plan (contract at its 0.4, artifact at its 6.1); development
   proceeds against a mock artifact until then. Open: D2 call source, D3 publish
   path, D4 conditioning, D5 override precedence.
+- **Forecast contract approved** (`docs/handoff.md` v1.0, forecast step 0.4).
+  Inputs here: `races.parquet`, `params.json`, `latent_draws.parquet`,
+  `chamber_rules.json`. Race statuses are uncalled / called / runoff (GA-style;
+  still simulated, shown distinctly) / fixed; `calls.csv` winner ∈ {D, R,
+  runoff}. D4 now leans toward exact latent weighting. Step 0.3 (mock artifact)
+  is unblocked.

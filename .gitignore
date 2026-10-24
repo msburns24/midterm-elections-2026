@@ -11,6 +11,10 @@ dist/
 # Data: raw pulls stay local until each source's terms are checked (see CLAUDE.md E11)
 data/raw/
 
+# Frozen-forecast verification draws: large, reproducible from the tagged
+# commit + manifest seed (docs/handoff.md)
+outputs/frozen/*/draws.parquet
+
 # Claude Code: keep plans, ignore machine-local settings
 .claude/settings.local.json
 
