@@ -65,24 +65,49 @@ wrapping.
 
 Legend: ✅ done · 🟡 partial · ❌ missing
 
-| Area                        | State                                                   |
-| --------------------------- | ------------------------------------------------------- |
-| Repo scaffold (uv, src, CI) | 🟡 uv package + tests + lint pass; not committed/pushed |
-| Handoff contract            | ❌ not drafted                                          |
-| FiftyPlusOne polls          | ❌ not downloaded; ToS unchecked                        |
-| District leans (2026 maps)  | ❌ source candidate: Downballot                         |
-| House race metadata         | ❌ no source chosen (B9)                                |
-| Senate races + holdovers    | ❌ not compiled                                         |
-| Historical results (2022)   | ❌ not downloaded                                       |
-| Generic ballot average      | ❌ missing                                              |
-| Senate poll averages        | ❌ missing                                              |
-| House fundamentals prior    | ❌ missing                                              |
-| Senate prior + combine      | ❌ missing                                              |
-| Simulator + seat accounting | ❌ missing                                              |
-| 2022 backtest               | ❌ missing                                              |
-| Frozen artifact + tag       | ❌ missing                                              |
+| Area                        | State                                              |
+| --------------------------- | -------------------------------------------------- |
+| Repo scaffold (uv, src, CI) | 🟡 pre-commit verified; GitHub Actions not yet run |
+| Model config                | 🟡 typed loader done; most values provisional      |
+| Handoff contract            | ❌ not drafted                                     |
+| FiftyPlusOne polls          | ❌ not downloaded; ToS unchecked                   |
+| District leans (2026 maps)  | ❌ source candidate: Downballot                    |
+| House race metadata         | ❌ no source chosen (B9)                           |
+| Senate races + holdovers    | ❌ not compiled                                    |
+| Historical results (2022)   | ❌ not downloaded                                  |
+| Generic ballot average      | ❌ missing                                         |
+| Senate poll averages        | ❌ missing                                         |
+| House fundamentals prior    | ❌ missing                                         |
+| Senate prior + combine      | ❌ missing                                         |
+| Simulator + seat accounting | ❌ missing                                         |
+| 2022 backtest               | ❌ missing                                         |
+| Frozen artifact + tag       | ❌ missing                                         |
 
 ## Pinned facts (don't rediscover these)
+
+**Engineering conventions (user requirements; also in CLAUDE.md)**
+
+- TDD: failing test → confirm red → minimal code → green → refactor. Before
+  refactoring existing code, add characterization tests first.
+- Clean Code: short single-purpose functions with verb names; module helpers are
+  `_private`.
+- Pre-commit (`.pre-commit-config.yaml`) runs ruff check, ruff format --check,
+  ty check, and pytest via `uv run`; GitHub Actions (`.github/workflows/ci.yml`)
+  runs the same on every push/PR. Never `--no-verify`.
+- ty gotcha: type-only imports (e.g. `_typeshed.DataclassInstance` under
+  `if TYPE_CHECKING:`) must be quoted in parameter annotations; Python 3.12
+  evaluates them at import → NameError. PEP 695 bounds (`[T: X]`) are lazy and
+  safe unquoted.
+
+**Repo & branches**
+
+- GitHub: `msburns24/midterm-elections-2026` (public, default `main`).
+- One local branch per area, cut from `main`; the user commits and merges at the
+  end of each phase. Branches: `forecast/config` (0.3–0.4), `forecast/data`
+  (P1), `forecast/polls` (P2), `forecast/priors` (P3), `forecast/simulate` (P4),
+  `forecast/backtest` (P5), `forecast/freeze` (P6).
+- Before starting a step, confirm you're on its phase branch
+  (`git branch --show-current`).
 
 **Schedule (soft targets)**
 
@@ -106,6 +131,13 @@ Legend: ✅ done · 🟡 partial · ❌ missing
   documented source files (CLAUDE.md rule).
 
 **Model**
+
+- Config: `config/model.toml` → `midterms.config.load_config()` → `ModelConfig`
+  (frozen dataclasses). Adding a key means updating both the TOML and the
+  dataclass, or the loader rejects it. `DEFAULT_PATH` resolves relative to the
+  source tree, so it relies on uv's editable install.
+- When a step sets a PROVISIONAL value, drop the tag and log the rationale in
+  the Progress log.
 
 - Target: Democratic two-party margin per race (CLAUDE.md C1 default from the
   reference approach; confirm at 3.1 if it's still open).
@@ -150,13 +182,16 @@ outputs/frozen/<tag>/        # handoff artifact + manifest
 - [x] **0.1** `uv init` src-layout package `midterms`, Python 3.12, ruff +
       pytest, `.gitignore`, LICENSE (D9). — ✅ 2026-10-24 _Check:_
       `uv run pytest` and `uv run ruff check` both pass on an empty smoke test.
-- [ ] **0.2** Create the GitHub repo (public), first commit (user commits),
-      push. _Check:_ `gh repo view` shows it public with CLAUDE.md + scaffold.
-- [ ] **0.3** `config/model.toml` + a loader returning a typed config. _Check:_
-      a test loads the config and asserts the keys/types.
+- [x] **0.2** Create the GitHub repo (public), first commit (user commits),
+      push. — ✅ 2026-10-24 _Check:_ `gh repo view` shows it public with
+      CLAUDE.md + scaffold.
+- [x] **0.3** `config/model.toml` + a loader returning a typed config. — ✅
+      2026-10-24 _Check:_ a test loads the config and asserts the keys/types.
 - [ ] **0.4** Draft the handoff contract (D7) in `docs/handoff.md`: file names,
       columns, dtypes. _Check:_ the user approves it; the schema is copied into
       Pinned facts.
+- [ ] **0.5** User commits + merges `forecast/config`, pushes `main`. _Check:_
+      `gh run list` shows the first CI run green on `main`.
 
 ### Phase 1 — Data acquisition (research first)
 
@@ -253,3 +288,44 @@ outputs/frozen/<tag>/        # handoff artifact + manifest
   `uv run pytest` 1 passed, `ruff check` and `ruff format --check` clean, and
   `git status --ignored` shows the venv and caches ignored. Next: 0.2, create
   the public GitHub repo; the user makes the first commit.
+- **0.2 done.** The user committed `0a8effa` ("Scaffold 2026 midterm forecast
+  project and plans") and pushed it to `msburns24/midterm-elections-2026`.
+  Verified: `gh repo view` reports PUBLIC with default branch `main`; the remote
+  holds all scaffold files; local `main` tracks `origin/main`. A8 (repo name)
+  resolved. Adopted one branch per area/phase and created `forecast/config` for
+  0.3–0.4. Next: 0.3, `config/model.toml` + typed loader.
+- User decision: merge at the end of every phase in both repos (election-night
+  Pinned updated).
+- **0.3 done** (on `forecast/config`). `config/model.toml` has sections
+  simulation, polls, poll_error, national, factor, race_noise. Every undecided
+  value is tagged `PROVISIONAL: <decision>, set at <step>`; election rules are
+  deliberately excluded (they come from data). `src/midterms/config.py` loads it
+  into frozen dataclasses with strict validation (missing/unknown keys →
+  KeyError, wrong type → TypeError, int→float widening). Verified: 5 tests pass
+  (load + 3 rejection cases); ruff clean; the real file loads with the expected
+  values. Next: 0.4, handoff contract.
+- **0.3 follow-ups (user requests before closing 0.3).** (1) TDD adopted. Five
+  characterization tests were added for the existing loader (int→float widening,
+  bool rejected for int/float, non-string list, missing section), all green
+  before refactoring. (2) `config.py` refactored to Clean Code style:
+  `load_config` → `_read_toml`, `_build_dataclass`, `_require_exact_keys`,
+  `_convert_value`, `_convert_string_list`, `_convert_float`, `_require_type`,
+  each a few lines; still green. Then red→green on a new case: a non-table
+  section used to raise AttributeError and now raises TypeError. (3) Added a
+  pre-commit dev dep, `.pre-commit-config.yaml` (local uv hooks: ruff check,
+  ruff format --check, pytest), installed the hook, and added GitHub Actions
+  `ci.yml` (checkout@v4, setup-uv@v6, `uv sync --locked`, same three checks).
+  Verified: `pre-commit run --all-files` passes; a probe file with an unused
+  import and bad formatting fails ruff check + format (exit 1), then was
+  deleted; 11 tests pass. The Actions workflow is unverified until the first
+  push → new step 0.5. Conventions recorded in CLAUDE.md (How to work, E9/E10
+  decisions) and Pinned.
+- **Static typing added (user request).** Dev dep `ty` 0.0.91. The first
+  `ty check` was red: two `invalid-argument-type` errors, a bare `type` passed
+  to `dataclasses.fields`. Fixed by making `_build_dataclass` generic
+  (`[T: DataclassInstance]`, returns `T`, so `load_config` is precisely typed)
+  and typing `_require_exact_keys` as `type[DataclassInstance]`. That briefly
+  broke pytest with a NameError (eager annotation of a TYPE_CHECKING-only name),
+  fixed by quoting it. ty was added to the pre-commit hooks and CI. Verified: a
+  probe `double("a")` fails the ty hook; `pre-commit run --all-files` passes all
+  four hooks; 11 tests pass. CLAUDE.md E10 resolved.

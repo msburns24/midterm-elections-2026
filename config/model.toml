@@ -1,0 +1,35 @@
+# Model configuration for the 2026 midterm forecast.
+#
+# Units: margins are Democratic minus Republican two-party margin, in
+# percentage points. Values marked PROVISIONAL are placeholders until the named
+# plan step (.claude/plans/forecast-model.md) or CLAUDE.md decision sets them.
+# Election rules (seat thresholds, holdovers, caucus) come from data, not here.
+
+[simulation]
+n_draws = 20000 # PROVISIONAL: C14, set at 4.2
+seed = 20261103 # PROVISIONAL: C14 seed policy, set at 4.2
+
+[polls]
+window_days = 60 # PROVISIONAL: D10, set at 2.1
+population_priority = ["lv", "rv", "v", "a"] # PROVISIONAL: D10 / C5, set at 2.1
+include_internal = false # PROVISIONAL: D10, set at 2.1
+include_partisan = false # PROVISIONAL: D10, set at 2.1
+half_life_days = 14.0 # PROVISIONAL: C3, set at 2.2
+sample_size_cap = 1500 # PROVISIONAL: C3, set at 2.2
+
+[poll_error]
+total_survey_error_factor = 2.0 # PROVISIONAL: C9, ~2x sampling error; set at 3.4
+bias_floor = 2.0 # PROVISIONAL: C9, per-race SD floor in points; set at 3.4
+
+[national]
+distribution = "student_t" # fat-tailed national shock (A5)
+df = 5.0 # PROVISIONAL: C10, set at 4.1
+scale = 3.0 # PROVISIONAL: C10, set at 4.1 / 5.2
+
+[factor]
+kind = "region" # PROVISIONAL: D8 (region vs. lean bucket vs. demographic), set at 4.1
+scale = 2.0 # PROVISIONAL: C11, set at 4.1
+
+[race_noise]
+house_sd = 6.0 # PROVISIONAL: C12, set at 3.2 from fundamentals residuals
+senate_sd = 5.0 # PROVISIONAL: C12, set at 3.4

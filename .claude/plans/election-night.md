@@ -75,6 +75,14 @@ Legend: ✅ done · 🟡 partial · ❌ missing
 
 ## Pinned facts (don't rediscover these)
 
+**Branches**
+
+- One local branch per area, cut from `main`; the user commits and merges at the
+  end of each phase. This repo: `live/contract` (P0), `live/calls` (P1),
+  `live/resim` (P2), `live/poller` (P3), `live/rehearsal` (P5). Site repo:
+  `midterms-dashboard` for P4. Merge at the end of every phase in both repos
+  (user decision); in the site repo, merging to `main` deploys.
+
 **Site repo**
 
 - Path: `~/programming/repos/website` (remote `msburns24/website`). Quarto

@@ -19,6 +19,9 @@ Scope and top-level design were settled on 2026-10-24 (see **Decision log**). Ma
 - If a task depends on an open decision, name the decision and ask before proceeding. Do not silently fall back to a default.
 - Do not hardcode facts that should come from data: incumbents, nominees, holdover seat counts, district leans, election rules. Pull them from a documented source or ask. Items marked *(verify)* are unconfirmed.
 - Respect each data source's license and attribution requirements (see **Data sources**).
+- **Test-driven development.** Write a failing test first, confirm it fails (red), write the minimum code to pass (green), then refactor with the tests green. When refactoring existing code, first add characterization tests that pin its current behavior.
+- **Clean code (Robert C. Martin style).** Write short functions that each do one thing, with clear verb names (`load_config`, `require_exact_keys`, `convert_float`). Prefer extracting a well-named helper over adding a comment or a nested branch.
+- **Pre-commit checks.** Never bypass them (`--no-verify`). If a hook fails, fix the cause.
 - Keep this file current. When a decision is made, move it from **Open decisions** to the **Decision log** and fill in the affected sections (Commands, Repository layout, Key dates).
 
 ## Reference approach (discussed, not adopted)
@@ -92,7 +95,6 @@ Every item below is **OPEN**. Resolved items have moved to the **Decision log**.
 ### A. Goals and scope
 
 - **A4. Pre-election freeze (partly resolved):** a freeze will happen, around the evening of 2026-11-02, marked with a git tag. Still open: the exact cutoff time and timezone, and whether a content-hash manifest goes with the tag.
-- **A8. Project and repository name.**
 
 ### B. Data
 
@@ -159,8 +161,7 @@ Every item below is **OPEN**. Resolved items have moved to the **Decision log**.
 - **E6. Code organization:** a package (src layout) plus scripts, notebooks, or both. Set a notebook policy.
 - **E7. Storage:** CSV, parquet, a DuckDB file, or other. Choose a directory layout (e.g., raw, interim, processed, outputs).
 - **E8. Configuration:** where model parameters live (YAML, TOML, Python) and how runs are parameterized.
-- **E9. Testing:** scope (data validation, simulator unit tests, regression tests) and framework.
-- **E10. Lint, format, and type-check:** ruff, black, mypy or pyright, pre-commit, or none.
+- **E9. Testing scope (partly resolved):** pytest with TDD (see Decision log). Still open: the scope of data-validation and regression tests.
 - **E11. Committed vs. ignored data (partly resolved):** the repo is public on GitHub (see Decision log). Still open: which data files are committed and which are gitignored. This depends on each source's terms of service.
 - **E12. Licensing (partly resolved):** the code is MIT (see Decision log). Still open: each data source's attribution and redistribution constraints.
 - **E14. Reproducibility:** pinned dependencies and a per-run manifest (data snapshot, parameters, code hash).
@@ -182,6 +183,11 @@ Every item below is **OPEN**. Resolved items have moved to the **Decision log**.
 | — | 2026-10-24 | Race calls come from free sources only, researched first (Wikipedia, state results feeds). A hand-edited `calls.csv` is the fallback. | Paid APIs (AP, DDHQ) cost $1k+ and need a sales process. |
 | — | 2026-10-24 | Two plans: the forecast model (deadline: freeze around Nov 2) and election night (deadline: Nov 3). They connect through a pinned handoff-file contract. | Two separate deadlines. Lets each plan progress in parallel. |
 | — | 2026-10-24 | Claude writes the code and the user reviews it, for this project only. | 10-day deadline. |
+| A8 | 2026-10-24 | Repo name `midterm-elections-2026` (github.com/msburns24/midterm-elections-2026). | Matches the local folder. |
+| — | 2026-10-24 | Git workflow: one local branch per project area/phase, cut from `main` (e.g., `forecast/data`, `live/calls`). The user commits and merges. The full branch list lives in each plan's Pinned facts. | The user asked for branches per area. Keeps `main` clean and phases reviewable. |
+| E9 | 2026-10-24 | pytest, with test-driven development for all new code and characterization tests before refactors. | User requirement. |
+| E10 | 2026-10-24 | ruff (lint and format), ty (static types), and pytest run as pre-commit hooks (`.pre-commit-config.yaml`, using uv-locked versions) and in GitHub Actions on every push and PR (`.github/workflows/ci.yml`). | User requirement: checks run before any commit. ty was the user's preference over mypy/pyright. It's pre-1.0, so the version is pinned by uv.lock. |
+| — | 2026-10-24 | Code style: short, single-purpose functions with clear verb names (Robert C. Martin / Clean Code). | User requirement. |
 | E12 (code) | 2026-10-24 | MIT license for the code. | Simplest choice for a public portfolio repo. Data terms are tracked per source. |
 | — | 2026-10-24 | Done signal: a dry run before Nov 3. Add a fake call to `calls.csv`, and within about 2 minutes the live page updates its control odds. | Rehearse before the real night. |
 
@@ -189,9 +195,12 @@ Every item below is **OPEN**. Resolved items have moved to the **Decision log**.
 
 ```bash
 uv sync                 # create/refresh .venv from uv.lock
+uv run pre-commit install         # once per clone: run ruff + pytest before each commit
+uv run pre-commit run --all-files # run the hooks manually
 uv run pytest           # tests (tests/)
 uv run ruff check       # lint (rules E,F,I,B,UP)
 uv run ruff format      # format
+uv run ty check         # static type check
 ```
 
 Pipeline commands are TBD as scripts land.
